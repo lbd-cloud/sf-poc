@@ -175,12 +175,19 @@ make test-hardening   # fail2ban, auditd, sysctl, password auth
 ```bash
 # Keep base image (~600 MB, i know its not much but my connection was really bad last days), destroy VM and recreate from scratch
 make soft-reset
-make net-up && make local-apply
+make net-up
+make local-apply
+ssh-keyscan -H 192.168.122.10 >> ~/.ssh/known_hosts
+make ansible-local
+make test
 
 # Full reset including base image (next apply re-downloads so tf can find it locally)
 make reset
-make net-up && make local-apply
-```
+make net-up
+make local-apply
+ssh-keyscan -H 192.168.122.10 >> ~/.ssh/known_hosts
+make ansible-local
+make test
 
 ---
 

@@ -41,7 +41,7 @@ VLAN_ID=150
 DEVICE_NS="ns-device"
 VETH_HOST="veth-host"
 VETH_NS="veth-ns"
-DEVICE_IP="10.200.16.100/29"
+DEVICE_IP="10.200.16.100/32"
 NET_XML="/tmp/vlan150-net.xml"
 
 # OVS bridge
@@ -69,6 +69,7 @@ if ! ip netns list | grep -q "^$DEVICE_NS"; then
   ip netns exec "$DEVICE_NS" ip link add link "$VETH_NS" name "${VETH_NS}.${VLAN_ID}" type vlan id "$VLAN_ID"
   ip netns exec "$DEVICE_NS" ip link set "${VETH_NS}.${VLAN_ID}" up
   ip netns exec "$DEVICE_NS" ip addr add "$DEVICE_IP" dev "${VETH_NS}.${VLAN_ID}"
+  ip netns exec "$DEVICE_NS" ip route add 10.200.16.0/29 dev "${VETH_NS}.${VLAN_ID}"
 fi
 
 # libvirt network backed by OVS bridge — passthrough, no NAT/DHCP

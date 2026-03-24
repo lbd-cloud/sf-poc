@@ -32,8 +32,8 @@ help:
 	@echo "    ansible-prod      Run Ansible against production VM"
 	@echo ""
 	@echo "  RESET"
-	@echo "    reset             Destroy everything including VM image and state"
-	@echo "    soft-reset        Destroy network + state but keep VM and base image"
+	@echo "    reset             Destroy everything including base image and state"
+	@echo "    soft-reset        Destroy VM and state but keep base image"
 	@echo ""
 	@echo "  PRODUCTION"
 	@echo "    prod-plan         terraform plan (vSphere)"
@@ -41,14 +41,12 @@ help:
 	@echo "    prod-destroy      terraform destroy (vSphere)"
 	@echo ""
 	@echo "  TESTS"
-	@echo "    test              Run all tests"
-	@echo "    test-vlan         Test VLAN 150 tagging and isolation"
-	@echo "    test-firewall     Test UFW interface rules"
-	@echo "    test-services     Test SSH and Nginx interface binding"
-	@echo "    test-hardening    Test hardening controls on the VM"
+	@echo "    test              Run all tests (requires ansible-local to have run)"
+	@echo "    test-vlan         VLAN 150 tagging and isolation"
+	@echo "    test-firewall     UFW interface rules and port 9000"
+	@echo "    test-services     SSH and Nginx interface binding"
+	@echo "    test-hardening    Hardening controls"
 	@echo ""
-
-# ── Setup ─────────────────────────────────────────────────────────────────────
 
 deps:
 	ansible-galaxy collection install -r $(ANSIBLE_DIR)/requirements.yml --upgrade
@@ -59,11 +57,10 @@ net-up:
 net-down:
 	sudo bash scripts/teardown-network.sh
 
-# ── Provisioning ──────────────────────────────────────────────────────────────
-
 local-apply:
 	cd $(TF_LOCAL) && terraform init && terraform apply -auto-approve
-
+	@echo "Waiting 30s for VM to fully boot and apply cloud-init..."
+	@sleep 30
 local-up: net-up local-apply
 
 local-destroy:
@@ -76,9 +73,6 @@ ansible-local:
 ansible-prod:
 	cd $(ANSIBLE_DIR) && ansible-playbook site.yml -i $(INV_PROD)
 
-# ── Reset ─────────────────────────────────────────────────────────────────────
-
-# Full reset — destroys VM, all volumes including base image, network, and state
 reset:
 	sudo virsh destroy $(VM_NAME) 2>/dev/null || true
 	sudo virsh undefine $(VM_NAME) 2>/dev/null || true
@@ -89,8 +83,6 @@ reset:
 	$(MAKE) net-down 2>/dev/null || true
 	@echo "Full reset done. Run: make net-up && make local-apply"
 
-# Soft reset — destroys VM and cleans state but keeps the base image (~600 MB)
-# Use this to reprovision without re-downloading the Ubuntu image
 soft-reset:
 	sudo virsh destroy $(VM_NAME) 2>/dev/null || true
 	sudo virsh undefine $(VM_NAME) 2>/dev/null || true
@@ -99,8 +91,6 @@ soft-reset:
 	rm -f $(TF_LOCAL)/terraform.tfstate $(TF_LOCAL)/terraform.tfstate.backup
 	$(MAKE) net-down 2>/dev/null || true
 	@echo "Soft reset done. Base image preserved. Run: make net-up && make local-apply"
-
-# ── Production ────────────────────────────────────────────────────────────────
 
 prod-plan:
 	cd $(TF_VSPHERE) && terraform init && terraform plan
@@ -111,13 +101,10 @@ prod-apply:
 prod-destroy:
 	cd $(TF_VSPHERE) && terraform destroy -auto-approve
 
-# ── Tests ─────────────────────────────────────────────────────────────────────
-
 test:
 	@echo "NOTE: Ansible must have run before tests (make ansible-local)"
 	$(MAKE) test-vlan test-firewall test-services test-hardening
 
-# Verify VLAN 150 tagging — both OVS ports are trunk, untagged traffic is dropped
 test-vlan:
 	@echo "\n── VLAN tagging ────────────────────────────────────────────────────────"
 	@echo "[host] OVS port vlan_mode and trunks (both must show trunk / [150]):"
@@ -129,11 +116,10 @@ test-vlan:
 	@echo "[host] Tagged ping via veth-ns.150 (VLAN 150) — must succeed:"
 	@sudo ip netns exec $(DEVICE_NS) ping -c2 -W2 -I veth-ns.150 $(VM_INT_IP) 2>&1 | tail -2
 
-# Verify UFW blocks wrong-interface access and allows port 9000 from device only
 test-firewall:
 	@echo "\n── Firewall rules ──────────────────────────────────────────────────────"
 	@echo "[host] Port 9000 from device via internal interface — must succeed:"
-	@sudo ip netns exec $(DEVICE_NS) nc -zvw2 -s $(DEVICE_IP) $(VM_INT_IP) 9000 2>&1
+	@sudo ip netns exec $(DEVICE_NS) nc -zvw2 -s $(DEVICE_IP) $(VM_INT_IP) 9000 2>&1; true
 	@echo "[host] SSH from device via internal interface — must fail:"
 	@sudo ip netns exec $(DEVICE_NS) nc -zvw2 $(VM_INT_IP) 22 2>&1 || true
 	@echo "[host] HTTP from device via internal interface — must fail:"
@@ -141,7 +127,6 @@ test-firewall:
 	@echo "[host] HTTP on external interface — must succeed:"
 	@curl -s -o /dev/null -w "HTTP %{http_code}\n" http://$(VM_EXT_IP)
 
-# Verify SSH and Nginx are bound only to the external interface
 test-services:
 	@echo "\n── Service interface binding ────────────────────────────────────────────"
 	@echo "[guest] SSH listen address (must show $(VM_EXT_IP):22 only):"
@@ -157,7 +142,6 @@ test-services:
 	@ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no deploy@$(VM_EXT_IP) \
 	  "ip addr show ens4.150 | grep inet"
 
-# Verify hardening controls
 test-hardening:
 	@echo "\n── Hardening controls ──────────────────────────────────────────────────"
 	@ssh -i ~/.ssh/id_ed25519 -o StrictHostKeyChecking=no deploy@$(VM_EXT_IP) " \

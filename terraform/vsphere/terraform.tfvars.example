@@ -1,0 +1,19 @@
+vsphere_user                 = "svc-terraform@vsphere.local"
+vsphere_password             = "CHANGE_ME"
+vsphere_server               = "vcenter.example.com"
+vsphere_allow_unverified_ssl = false
+
+datacenter          = "DC01"
+cluster             = "Cluster01"
+datastore           = "datastore-ssd-01"
+vm_template         = "ubuntu-22.04-template"
+external_portgroup  = "PG-External"
+internal_portgroup  = "PG-Internal-VLAN150"
+
+external_ip            = "203.0.113.10"
+external_prefix_length = 24
+external_gateway       = "203.0.113.1"
+internal_ip            = "10.200.16.1"
+
+vm_admin_user  = "deploy"
+ssh_public_key = "ssh-ed25519 AAAA..."

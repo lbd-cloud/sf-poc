@@ -1,0 +1,50 @@
+---
+# Defaults — overridden per environment in inventory files
+
+external_interface: "ens3"
+internal_interface: "ens4"
+internal_vlan_id: 150
+# Full internal interface name — eth1.150 everywhere (VLAN tagging always on)
+internal_iface_full: "{{ internal_interface }}.{{ internal_vlan_id }}"
+
+internal_device_ip:   "10.200.16.100"
+internal_service_port: 9000
+
+external_prefix_length: 24
+external_gateway: ""
+dns_servers: ["1.1.1.1", "8.8.8.8"]
+
+ssh_port: 22
+ssh_allowed_users:
+  - "{{ ansible_user }}"
+
+nginx_http_port:  80
+nginx_https_port: 443
+
+fail2ban_ssh_maxretry: 5
+fail2ban_ssh_bantime:  3600
+fail2ban_ssh_findtime: 600
+
+packages_to_remove:
+  - telnet
+  - rsh-client
+  - rsh-redone-client
+  - nis
+  - talk
+  - talkd
+  - nfs-kernel-server
+  - rpcbind
+
+packages_to_install:
+  - curl
+  - ca-certificates
+  - unzip
+  - python3
+  - python3-apt
+  - chrony
+  - auditd
+  - audispd-plugins
+  - fail2ban
+  - ufw
+  - unattended-upgrades
+  - apt-listchanges

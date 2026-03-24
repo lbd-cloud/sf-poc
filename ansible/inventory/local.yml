@@ -1,0 +1,17 @@
+---
+# Local environment — IP from: terraform -chdir=terraform/local output external_ip
+# Some config made manually due to test env network limitations
+all:
+  hosts:
+    ubuntu-hardened-local:
+      ansible_host: "192.168.122.10"   # replace with terraform output for different network
+      ansible_user: deploy
+      ansible_ssh_private_key_file: ~/.ssh/id_ed25519
+      external_ip: "192.168.122.10"    # replace with terraform output
+      internal_ip: "10.200.16.1"
+      external_interface: "ens3"
+      internal_interface: "ens4"
+      internal_vlan_id: 150
+      internal_device_ip: "10.200.16.100"
+      external_gateway: "192.168.122.1" # replace with GW . 
+      external_prefix_length: 24

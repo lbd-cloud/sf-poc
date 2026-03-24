@@ -1,0 +1,95 @@
+---
+- name: Install netplan
+  ansible.builtin.apt:
+    name: netplan.io
+    state: present
+
+# Disable any existing Netplan configs to avoid conflicts
+- name: Disable default cloud-init network config
+  ansible.builtin.file:
+    path: /etc/cloud/cloud.cfg.d/99-disable-network-config.cfg
+    state: touch
+    mode: "0644"
+
+- name: Remove existing Netplan configs
+  ansible.builtin.shell:
+    cmd: find /etc/netplan -name '*.yaml' -not -name '50-custom.yaml' -exec mv {} {}.bak \;
+  changed_when: false
+
+- name: Deploy Netplan config
+  ansible.builtin.template:
+    src: netplan.yaml.j2
+    dest: /etc/netplan/50-custom.yaml
+    owner: root
+    group: root
+    mode: "0600"
+  notify: Apply netplan
+
+- name: Add host route for internal device (outside /29 subnet)
+  ansible.builtin.command:
+    cmd: "ip route replace {{ internal_device_ip }}/32 dev {{ internal_interface }}.{{ internal_vlan_id }}"
+  changed_when: true
+
+- name: Persist host route via systemd-networkd .network file
+  ansible.builtin.copy:
+    dest: "/etc/systemd/network/10-{{ internal_interface }}.{{ internal_vlan_id }}-routes.network"
+    mode: "0644"
+    content: |
+      [Match]
+      Name={{ internal_interface }}.{{ internal_vlan_id }}
+
+      [Route]
+      Destination={{ internal_device_ip }}/32
+      Scope=link
+  notify: Restart networkd
+
+- name: Configure internal VLAN sub-interface via systemd-networkd
+  ansible.builtin.copy:
+    dest: "/etc/systemd/network/20-{{ internal_interface }}.{{ internal_vlan_id }}.netdev"
+    mode: "0644"
+    content: |
+      [NetDev]
+      Name={{ internal_interface }}.{{ internal_vlan_id }}
+      Kind=vlan
+
+      [VLAN]
+      Id={{ internal_vlan_id }}
+  notify: Restart networkd
+
+- name: Configure internal VLAN sub-interface network via systemd-networkd
+  ansible.builtin.copy:
+    dest: "/etc/systemd/network/20-{{ internal_interface }}.{{ internal_vlan_id }}.network"
+    mode: "0644"
+    content: |
+      [Match]
+      Name={{ internal_interface }}.{{ internal_vlan_id }}
+
+      [Network]
+      Address={{ internal_ip }}/29
+
+      [Route]
+      Destination={{ internal_device_ip }}/32
+      Scope=link
+  notify: Restart networkd
+
+- name: Bind VLAN to parent interface via systemd-networkd
+  ansible.builtin.copy:
+    dest: "/etc/systemd/network/20-{{ internal_interface }}.network"
+    mode: "0644"
+    content: |
+      [Match]
+      Name={{ internal_interface }}
+
+      [Network]
+      VLAN={{ internal_interface }}.{{ internal_vlan_id }}
+  notify: Restart networkd
+
+- name: Assign internal IP directly (immediate, no reboot needed)
+  ansible.builtin.command:
+    cmd: "ip addr replace {{ internal_ip }}/29 dev {{ internal_interface }}.{{ internal_vlan_id }}"
+  changed_when: true
+
+- name: Add host route for internal device (immediate)
+  ansible.builtin.command:
+    cmd: "ip route replace {{ internal_device_ip }}/32 dev {{ internal_interface }}.{{ internal_vlan_id }}"
+  changed_when: true

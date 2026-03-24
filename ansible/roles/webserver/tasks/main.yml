@@ -1,0 +1,48 @@
+---
+- name: Install Nginx
+  ansible.builtin.apt:
+    name: nginx
+    state: present
+
+- name: Remove default Nginx site
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /etc/nginx/sites-enabled/default
+    - /etc/nginx/sites-available/default
+  notify: Reload nginx
+
+- name: Deploy virtualhost bound to external IP
+  ansible.builtin.template:
+    src: nginx-site.conf.j2
+    dest: /etc/nginx/sites-available/hardened
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Reload nginx
+
+- name: Enable site
+  ansible.builtin.file:
+    src: /etc/nginx/sites-available/hardened
+    dest: /etc/nginx/sites-enabled/hardened
+    state: link
+  notify: Reload nginx
+
+- name: Disable server_tokens and add security headers globally
+  ansible.builtin.lineinfile:
+    path: /etc/nginx/nginx.conf
+    insertafter: "http {"
+    line: "        server_tokens off;"
+  notify: Reload nginx
+
+- name: Validate Nginx config
+  ansible.builtin.command:
+    cmd: nginx -t
+  changed_when: false
+
+- name: Enable and start Nginx
+  ansible.builtin.service:
+    name: nginx
+    state: started
+    enabled: true

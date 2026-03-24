@@ -1,0 +1,30 @@
+# Managed by Ansible
+network:
+  version: 2
+  renderer: networkd
+
+  ethernets:
+    # External interface — internet-facing, SSH and Nginx listen here
+    {{ external_interface }}:
+      dhcp4: false
+      addresses: ["{{ external_ip }}/{{ external_prefix_length }}"]
+      routes:
+        - to: default
+          via: {{ external_gateway }}
+      nameservers:
+        addresses: {{ dns_servers }}
+
+    # Raw internal interface — no IP, parent for the VLAN sub-interface
+    {{ internal_interface }}:
+      dhcp4: false
+
+  vlans:
+    # VLAN 150 sub-interface — strips 802.1Q tag from frames arriving on eth1
+    # Local: OVS sends tagged frames (trunk port, VLAN 150)
+    # vSphere: port group is configured as VLAN 150 trunk
+    {{ internal_interface }}.{{ internal_vlan_id }}:
+      id: {{ internal_vlan_id }}
+      link: {{ internal_interface }}
+      dhcp4: false
+      addresses: ["{{ internal_ip }}/29"]
+

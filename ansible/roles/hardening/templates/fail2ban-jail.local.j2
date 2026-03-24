@@ -1,0 +1,14 @@
+# Managed by Ansible
+[DEFAULT]
+bantime  = {{ fail2ban_ssh_bantime }}
+findtime = {{ fail2ban_ssh_findtime }}
+maxretry = {{ fail2ban_ssh_maxretry }}
+backend  = systemd
+banaction = ufw
+
+[sshd]
+enabled  = true
+port     = {{ ssh_port }}
+filter   = sshd
+logpath  = /var/log/auth.log
+maxretry = {{ fail2ban_ssh_maxretry }}

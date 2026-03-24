@@ -1,0 +1,36 @@
+-D
+-b 8192
+-f 1
+
+# Identity and authentication
+-w /etc/passwd   -p wa -k identity
+-w /etc/shadow   -p wa -k identity
+-w /etc/group    -p wa -k identity
+-w /etc/sudoers  -p wa -k sudoers
+-w /etc/sudoers.d/ -p wa -k sudoers
+
+# SSH config changes
+-w /etc/ssh/sshd_config -p wa -k sshd_config
+
+# Privileged command execution
+-a always,exit -F arch=b64 -F euid=0 -S execve -k root_commands
+-w /usr/bin/sudo -p x -k sudo_exec
+-w /usr/bin/su   -p x -k su_exec
+
+# Network config changes
+-a always,exit -F arch=b64 -S sethostname -S setdomainname -k network_config
+-w /etc/hosts    -p wa -k network_config
+-w /etc/netplan/ -p wa -k network_config
+
+# Kernel module loading
+-w /sbin/insmod  -p x -k module_load
+-w /sbin/rmmod   -p x -k module_load
+-w /sbin/modprobe -p x -k module_load
+-a always,exit -F arch=b64 -S init_module -S delete_module -k module_load
+
+# Audit log tampering
+-w /var/log/audit/ -p wa -k audit_tamper
+-w /etc/audit/     -p wa -k audit_tamper
+
+# Uncomment to make rules immutable (requires reboot to change)
+# -e 2

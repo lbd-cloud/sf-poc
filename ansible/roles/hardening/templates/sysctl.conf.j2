@@ -1,0 +1,49 @@
+# Managed by Ansible — CIS Ubuntu 22.04 Level 1
+
+# Disable IP forwarding — not a router
+net.ipv4.ip_forward = 0
+net.ipv6.conf.all.forwarding = 0
+
+# Disable source routing
+net.ipv4.conf.all.accept_source_route = 0
+net.ipv4.conf.default.accept_source_route = 0
+net.ipv6.conf.all.accept_source_route = 0
+
+# Disable ICMP redirects
+net.ipv4.conf.all.accept_redirects = 0
+net.ipv4.conf.default.accept_redirects = 0
+net.ipv4.conf.all.secure_redirects = 0
+net.ipv4.conf.all.send_redirects = 0
+net.ipv6.conf.all.accept_redirects = 0
+
+# Log martian packets (impossible source addresses)
+net.ipv4.conf.all.log_martians = 1
+
+# Strict reverse path filtering
+net.ipv4.conf.all.rp_filter = 1
+net.ipv4.conf.default.rp_filter = 1
+
+# SYN flood protection
+net.ipv4.tcp_syncookies = 1
+
+# Disable IPv6 router advertisements
+net.ipv6.conf.all.accept_ra = 0
+net.ipv6.conf.default.accept_ra = 0
+
+# Restrict kernel info exposure
+kernel.dmesg_restrict = 1
+kernel.kptr_restrict = 2
+kernel.perf_event_paranoid = 3
+
+# Restrict ptrace to parent processes only
+kernel.yama.ptrace_scope = 1
+
+# Full ASLR
+kernel.randomize_va_space = 2
+
+# Disable core dumps from setuid programs
+fs.suid_dumpable = 0
+
+# Protect against hardlink/symlink attacks
+fs.protected_hardlinks = 1
+fs.protected_symlinks = 1

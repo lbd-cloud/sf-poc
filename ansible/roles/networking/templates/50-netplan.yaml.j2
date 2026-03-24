@@ -1,0 +1,45 @@
+# Managed by Ansible — do not edit manually
+# vSphere mode: eth0 = external, eth1.{{ internal_vlan_id }} = internal VLAN sub-interface
+network:
+  version: 2
+  renderer: networkd
+
+  ethernets:
+    {{ external_interface }}:
+      dhcp4: false
+      dhcp6: false
+      addresses:
+        - {{ external_ip }}/{{ external_prefix_length | default(24) }}
+      routes:
+        - to: default
+          via: {{ external_gateway | default('') }}
+      nameservers:
+        addresses: {{ dns_servers | default(['1.1.1.1', '8.8.8.8']) }}
+
+{% if vlan_tagging_enabled %}
+    # eth1 raw — must be defined so the VLAN sub-interface can attach to it.
+    # No IP is assigned here; only eth1.{{ internal_vlan_id }} gets the internal IP.
+    {{ internal_interface }}:
+      dhcp4: false
+      dhcp6: false
+
+  vlans:
+    # VLAN sub-interface: eth1.{{ internal_vlan_id }}
+    # The vSwitch port group sends 802.1Q-tagged frames with VLAN ID {{ internal_vlan_id }}.
+    # This sub-interface strips the tag and presents a plain L3 interface to the OS.
+    {{ internal_interface }}.{{ internal_vlan_id }}:
+      id: {{ internal_vlan_id }}
+      link: {{ internal_interface }}
+      dhcp4: false
+      dhcp6: false
+      addresses:
+        - {{ internal_ip }}/29
+{% else %}
+    # Vagrant mode: no VLAN tagging needed.
+    # eth1 and eth2 are plain host-only adapters already configured by Vagrant.
+    {{ internal_interface }}:
+      dhcp4: false
+      dhcp6: false
+      addresses:
+        - {{ internal_ip }}/24
+{% endif %}

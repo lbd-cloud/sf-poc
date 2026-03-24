@@ -1,0 +1,6 @@
+---
+- ansible.builtin.import_tasks: ufw.yml
+- ansible.builtin.import_tasks: sysctl.yml
+- ansible.builtin.import_tasks: fail2ban.yml
+- ansible.builtin.import_tasks: auditd.yml
+- ansible.builtin.import_tasks: modules.yml

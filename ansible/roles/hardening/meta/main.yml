@@ -1,0 +1,9 @@
+---
+galaxy_info:
+  role_name: hardening
+  description: "UFW, sysctl, fail2ban, auditd, kernel module blacklisting"
+  min_ansible_version: "2.15"
+  platforms:
+    - name: Ubuntu
+      versions: [jammy]
+dependencies: [common, networking, webserver, sshd]

@@ -1,0 +1,45 @@
+# Managed by Ansible
+
+# Binds only to the external interface — SSH is unreachable on the internal interface
+ListenAddress {{ external_ip }}
+Port {{ ssh_port }}
+
+# Host keys — Ed25519 only (RSA kept as fallback for older clients)
+HostKey /etc/ssh/ssh_host_ed25519_key
+HostKey /etc/ssh/ssh_host_rsa_key
+
+# Key exchange, ciphers, MACs — modern algorithms only
+KexAlgorithms curve25519-sha256,curve25519-sha256@libssh.org,diffie-hellman-group16-sha512,diffie-hellman-group18-sha512
+Ciphers chacha20-poly1305@openssh.com,aes256-gcm@openssh.com,aes128-gcm@openssh.com
+MACs hmac-sha2-512-etm@openssh.com,hmac-sha2-256-etm@openssh.com
+
+# Authentication
+PermitRootLogin no
+PasswordAuthentication no
+PermitEmptyPasswords no
+PubkeyAuthentication yes
+AuthorizedKeysFile .ssh/authorized_keys
+ChallengeResponseAuthentication no
+UsePAM yes
+
+AllowUsers {% for u in ssh_allowed_users %}{{ u }} {% endfor %}
+
+MaxAuthTries 3
+MaxSessions 5
+LoginGraceTime 30
+
+# Session hardening
+ClientAliveInterval 300
+ClientAliveCountMax 3
+X11Forwarding no
+AllowAgentForwarding no
+AllowTcpForwarding no
+PermitTunnel no
+
+# Logging
+SyslogFacility AUTH
+LogLevel VERBOSE
+
+Banner none
+PrintMotd no
+Subsystem sftp /usr/lib/openssh/sftp-server

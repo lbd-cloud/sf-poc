@@ -1,0 +1,77 @@
+# /etc/sysctl.d/99-hardening.conf
+# Managed by Ansible — do not edit manually.
+# CIS Ubuntu 22.04 LTS Benchmark — Level 1 kernel parameters.
+
+# ── Network: IP forwarding ─────────────────────────────────────────────────────
+# This is not a router. Disable IP forwarding to prevent packet relay.
+net.ipv4.ip_forward = 0
+net.ipv6.conf.all.forwarding = 0
+
+# ── Network: Source routing ────────────────────────────────────────────────────
+# Source-routed packets can be used to bypass firewall rules.
+net.ipv4.conf.all.accept_source_route = 0
+net.ipv4.conf.default.accept_source_route = 0
+net.ipv6.conf.all.accept_source_route = 0
+net.ipv6.conf.default.accept_source_route = 0
+
+# ── Network: ICMP redirects ────────────────────────────────────────────────────
+# Reject ICMP redirect messages (can be used to alter routing tables).
+net.ipv4.conf.all.accept_redirects = 0
+net.ipv4.conf.default.accept_redirects = 0
+net.ipv4.conf.all.secure_redirects = 0
+net.ipv4.conf.default.secure_redirects = 0
+net.ipv6.conf.all.accept_redirects = 0
+net.ipv6.conf.default.accept_redirects = 0
+
+# Do not send ICMP redirect messages
+net.ipv4.conf.all.send_redirects = 0
+net.ipv4.conf.default.send_redirects = 0
+
+# ── Network: Martian packets ───────────────────────────────────────────────────
+# Log packets with impossible source addresses (useful for detecting spoofing).
+net.ipv4.conf.all.log_martians = 1
+net.ipv4.conf.default.log_martians = 1
+
+# ── Network: Reverse path filtering ───────────────────────────────────────────
+# Strict mode: drop packets where the reverse path does not match incoming iface.
+net.ipv4.conf.all.rp_filter = 1
+net.ipv4.conf.default.rp_filter = 1
+
+# ── Network: TCP SYN cookies ───────────────────────────────────────────────────
+# Protect against SYN flood attacks.
+net.ipv4.tcp_syncookies = 1
+
+# ── Network: IPv6 ─────────────────────────────────────────────────────────────
+# Disable IPv6 router advertisements (we don't use IPv6 routing).
+net.ipv6.conf.all.accept_ra = 0
+net.ipv6.conf.default.accept_ra = 0
+
+# ── Kernel: dmesg restriction ──────────────────────────────────────────────────
+# Prevent unprivileged users from reading kernel ring buffer.
+kernel.dmesg_restrict = 1
+
+# ── Kernel: kptr restriction ───────────────────────────────────────────────────
+# Hide kernel symbol addresses from /proc/kallsyms for non-root users.
+kernel.kptr_restrict = 2
+
+# ── Kernel: perf events ────────────────────────────────────────────────────────
+# Restrict performance event access to root only.
+kernel.perf_event_paranoid = 3
+
+# ── Kernel: ptrace scope ───────────────────────────────────────────────────────
+# Restrict ptrace to parent processes only (prevents process injection).
+kernel.yama.ptrace_scope = 1
+
+# ── Kernel: core dumps ────────────────────────────────────────────────────────
+# Disable core dumps (can expose sensitive memory contents).
+fs.suid_dumpable = 0
+kernel.core_uses_pid = 1
+
+# ── Kernel: randomise address space ───────────────────────────────────────────
+# Full ASLR — randomise memory addresses to mitigate buffer overflows.
+kernel.randomize_va_space = 2
+
+# ── File system ────────────────────────────────────────────────────────────────
+# Protect against hard link and symlink attacks (TOCTOU exploits).
+fs.protected_hardlinks = 1
+fs.protected_symlinks = 1

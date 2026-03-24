@@ -1,0 +1,17 @@
+---
+# ansible/inventory/hosts.yml.example
+# Copy to hosts.yml (gitignored) and fill in real values after terraform apply to set ACTUAL public host/ip 
+
+all:
+  hosts:
+    ubuntu-hardened:
+      ansible_host: "203.0.113.10"          # ← replace with: terraform output external_ip
+      ansible_user: deploy
+      ansible_ssh_private_key_file: ~/.ssh/id_ed25519
+      external_ip: "203.0.113.10"
+      internal_ip: "10.200.16.1"
+      external_interface: "eth0"
+      internal_interface: "eth1"
+      vlan_tagging_enabled: true
+      internal_vlan_id: 150
+      internal_device_ip: "10.200.16.100"

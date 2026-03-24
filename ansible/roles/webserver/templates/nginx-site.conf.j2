@@ -1,0 +1,20 @@
+# Managed by Ansible
+# Binds only to the external IP — Nginx will not respond on the internal interface
+server {
+    listen {{ external_ip }}:{{ nginx_http_port }} default_server;
+    server_name _;
+
+    root /var/www/html;
+    index index.html index.nginx-debian.html;
+
+    access_log /var/log/nginx/access.log;
+    error_log  /var/log/nginx/error.log warn;
+
+    location / {
+        try_files $uri $uri/ =404;
+    }
+
+    location ~ /\. {
+        deny all;
+    }
+}

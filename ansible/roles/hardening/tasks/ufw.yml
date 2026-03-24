@@ -1,0 +1,65 @@
+---
+- name: Install UFW
+  ansible.builtin.apt:
+    name: ufw
+    state: present
+
+- name: Reset UFW
+  community.general.ufw:
+    state: reset
+
+- name: Default deny inbound
+  community.general.ufw:
+    default: deny
+    direction: incoming
+
+- name: Default allow outbound
+  community.general.ufw:
+    default: allow
+    direction: outgoing
+
+# External interface — SSH and web
+- name: Allow SSH on external interface
+  community.general.ufw:
+    rule: allow
+    interface: "{{ external_interface }}"
+    direction: in
+    proto: tcp
+    port: "{{ ssh_port }}"
+
+- name: Allow HTTP on external interface
+  community.general.ufw:
+    rule: allow
+    interface: "{{ external_interface }}"
+    direction: in
+    proto: tcp
+    port: "{{ nginx_http_port }}"
+
+- name: Allow HTTPS on external interface
+  community.general.ufw:
+    rule: allow
+    interface: "{{ external_interface }}"
+    direction: in
+    proto: tcp
+    port: "{{ nginx_https_port }}"
+
+# Internal interface — port 9000 from the device only
+- name: Allow port 9000 from internal device on VLAN sub-interface
+  community.general.ufw:
+    rule: allow
+    interface: "{{ internal_interface }}.{{ internal_vlan_id }}"
+    direction: in
+    proto: tcp
+    from_ip: "{{ internal_device_ip }}"
+    port: "{{ internal_service_port }}"
+
+- name: Deny everything else on VLAN sub-interface
+  community.general.ufw:
+    rule: deny
+    interface: "{{ internal_interface }}.{{ internal_vlan_id }}"
+    direction: in
+
+- name: Enable UFW
+  community.general.ufw:
+    state: enabled
+    logging: "on"

@@ -1,0 +1,59 @@
+---
+- name: Ensure OpenSSH is installed
+  ansible.builtin.apt:
+    name: openssh-server
+    state: present
+
+- name: Create deploy user
+  ansible.builtin.user:
+    name: "{{ ansible_user }}"
+    groups: sudo
+    shell: /bin/bash
+    create_home: true
+    state: present
+
+- name: Add SSH public key for deploy user
+  ansible.posix.authorized_key:
+    user: "{{ ansible_user }}"
+    key: "{{ lookup('file', '~/.ssh/id_ed25519.pub') }}"
+    state: present
+
+- name: Allow deploy user passwordless sudo
+  ansible.builtin.copy:
+    dest: "/etc/sudoers.d/{{ ansible_user }}"
+    content: "{{ ansible_user }} ALL=(ALL) NOPASSWD:ALL\n"
+    mode: "0440"
+    validate: "visudo -cf %s"
+
+- name: Remove weak host keys
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - /etc/ssh/ssh_host_dsa_key
+    - /etc/ssh/ssh_host_dsa_key.pub
+    - /etc/ssh/ssh_host_ecdsa_key
+    - /etc/ssh/ssh_host_ecdsa_key.pub
+  notify: Restart sshd
+
+- name: Ensure Ed25519 host key exists
+  ansible.builtin.command:
+    cmd: ssh-keygen -t ed25519 -f /etc/ssh/ssh_host_ed25519_key -N ""
+    creates: /etc/ssh/ssh_host_ed25519_key
+  notify: Restart sshd
+
+- name: Deploy hardened sshd_config
+  ansible.builtin.template:
+    src: sshd_config.j2
+    dest: /etc/ssh/sshd_config
+    owner: root
+    group: root
+    mode: "0600"
+    validate: "sshd -t -f %s"
+  notify: Restart sshd
+
+- name: Enable and start SSH
+  ansible.builtin.service:
+    name: ssh
+    state: started
+    enabled: true

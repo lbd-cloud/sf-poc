@@ -1,0 +1,23 @@
+---
+- name: Blacklist unused/risky kernel modules
+  ansible.builtin.copy:
+    dest: /etc/modprobe.d/hardening-blacklist.conf
+    owner: root
+    group: root
+    mode: "0644"
+    content: |
+      # Uncommon network protocols
+      install dccp /bin/false
+      install sctp /bin/false
+      install rds  /bin/false
+      install tipc /bin/false
+
+      # Not needed on a server VM
+      install usb-storage /bin/false
+      install bluetooth   /bin/false
+      install firewire-core /bin/false
+
+- name: Update initramfs to apply blacklist
+  ansible.builtin.command:
+    cmd: update-initramfs -u
+  changed_when: true
